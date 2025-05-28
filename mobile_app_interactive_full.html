@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aplikasi Mobile Interaktif – Versi Lengkap</title>
+  <style>
+    :root {
+      --primary-dark: #0b1c3a;
+      --secondary-dark: #0d254c;
+      --card-bg: #1a2b4d;
+      --accent: #3d7eff;
+      --danger: #ff5252;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background-color: var(--primary-dark);
+      color: white;
+    }
+
+    /* ==== Layout ====*/
+    header, section, footer { padding: 1rem; }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--secondary-dark);
+      position: sticky;
+      top: 0; z-index: 200;
+    }
+
+    .icon-btn { font-size: 1.5rem; cursor: pointer; user-select: none; }
+    .logo { font-weight: bold; }
+
+    .side-menu {
+      position: fixed; top: 0; left: -260px; width: 260px; height: 100%;
+      background-color: #112244; padding: 1rem; transition: left 0.3s ease; z-index: 300;
+      overflow-y: auto;
+    }
+    .side-menu.active { left: 0; }
+    .side-menu h3 { margin-top: 1rem; }
+    .side-menu ul { list-style: none; padding-left: 0; }
+    .side-menu li { margin: .75rem 0; cursor: pointer; }
+    .side-menu li ul { margin-top: .5rem; margin-left: 1rem; display: none; }
+    .side-menu li.open > ul { display: block; }
+    .side-menu button { background:none;border:none;color:white;font:inherit;cursor:pointer;padding:0;}
+
+    .carousel { position: relative; height: 180px; overflow: hidden; border-radius: 8px; }
+    .carousel img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity .6s ease; }
+    .carousel img.active { opacity: 1; }
+    .carousel-controls { position: absolute; bottom: 8px; right: 8px; display: flex; gap: 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.5); cursor: pointer; }
+    .dot.active { background: white; }
+    .play-pause {position:absolute;top:8px;right:8px;font-size:1.2rem;background:rgba(0,0,0,.4);border:none;color:white;border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+    /* Cards & grids */
+    .card-container, .thumbnail-container, .comment-list, .item-container { display: flex; flex-wrap: wrap; gap: .75rem; }
+    .card { background: var(--card-bg); padding: 1rem; border-radius: 8px; flex: 1 1 47%; text-align: center; cursor: pointer; position:relative;}
+    .card img { width:100%; border-radius:6px; margin-bottom:.5rem;}
+    .thumbnail { width: 30%; border-radius: 6px; cursor: pointer; }
+    .comment { background: var(--card-bg); padding: .75rem; border-radius: 8px; width: 100%; }
+    .comment time{ font-size:.75rem;color:#ccc;}
+
+    .button { display: inline-block; padding: .6rem 1.2rem; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: .75rem; }
+    .button.small{padding:.4rem .8rem;font-size:.9rem;}
+
+    /* Bottom navigation */
+    .bottom-nav {
+      position: fixed; bottom: 0; width: 100%; display: flex; justify-content: space-around; align-items: center;
+      background: var(--secondary-dark); padding: 1rem 0; z-index: 150;
+    }
+    .bottom-nav div { text-align: center; cursor: pointer; font-size: 1.2rem; opacity: .7; }
+    .bottom-nav div.active { opacity: 1; }
+
+    /* Search overlay */
+    .search-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; place-items: center; z-index: 350;
+    }
+    .search-box {
+      background: var(--primary-dark); width: 90%; max-width: 400px; padding: 1rem; border-radius: 8px; display: flex;
+    }
+    .search-box input {
+      flex: 1; padding: .5rem .75rem; border: none; border-radius: 6px 0 0 6px;
+    }
+    .search-box button {
+      padding: .5rem 1rem; border: none; background: var(--accent); color: white; border-radius: 0 6px 6px 0; cursor: pointer;
+    }
+
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:400;}
+    .modal{background:var(--primary-dark);padding:1rem;border-radius:8px;width:90%;max-width:420px;max-height:90vh;overflow-y:auto;position:relative;}
+    .modal h3{margin-top:0;}
+    .modal .close-btn{position:absolute;top:8px;right:8px;background:none;border:none;color:white;font-size:1.3rem;cursor:pointer;}
+
+    /* Forms */
+    .comment-form{display:flex;flex-direction:column;gap:.5rem;margin-top:.75rem;}
+    .comment-form input,.comment-form textarea{padding:.5rem .75rem;border:none;border-radius:6px;}
+    .comment-form textarea{resize:vertical;}
+
+    /* Accessibility */
+    .sr-only{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;}
+  </style>
+</head>
+<body>
+  <!-- ===== Header ===== -->
+  <header>
+    <div class="icon-btn" onclick="toggleMenu()" aria-label="Buka menu samping">☰</div>
+    <div class="logo">LOGO</div>
+    <div class="icon-btn" onclick="toggleSearch()" aria-label="Cari">🔍</div>
+  </header>
+
+  <!-- ===== Side Menu ===== -->
+  <nav class="side-menu" id="sideMenu" aria-label="Menu Samping">
+    <h2>Menu</h2>
+    <ul>
+      <li><button onclick="navigate('home')">Home</button></li>
+      <li>
+        <button onclick="toggleDropdown(this)" aria-expanded="false">Categories ▸</button>
+        <ul>
+          <li><button onclick="navigate('cat1')">Item #1</button></li>
+          <li><button onclick="navigate('cat2')">Item #2</button></li>
+          <li><button onclick="navigate('cat3')">Item #3</button></li>
+          <li><button onclick="navigate('cat4')">Item #4</button></li>
+          <li><button onclick="navigate('cat5')">Item #5</button></li>
+          <li><button onclick="navigate('cat6')">Item #6</button></li>
+          <li><button onclick="navigate('cat7')">Item #7</button></li>
+          <li><button onclick="navigate('cat8')">Item #8</button></li>
+          <li><button onclick="navigate('cat9')">Item #9</button></li>
+          <li><button onclick="navigate('cat10')">Item #10</button></li>
+        </ul>
+      </li>
+      <li><button onclick="navigate('blog')">Blog</button></li>
+      <li><button onclick="navigate('about')">About</button></li>
+    </ul>
+  </nav>
+
+  <!-- ===== Search Overlay ===== -->
+  <div class="search-overlay" id="searchOverlay" onclick="toggleSearch()">
+    <div class="search-box" onclick="event.stopPropagation()">
+      <input type="text" placeholder="Cari..." id="searchInput" aria-label="Kata kunci">
+      <button onclick="performSearch()">Cari</button>
+    </div>
+  </div>
+
+  <!-- ===== Carousel / Slider ===== -->
+  <section class="carousel" id="carousel" aria-label="Carousel">
+    <img src="https://picsum.photos/id/1018/640/360" class="active" alt="Slide 1">
+    <img src="https://picsum.photos/id/1025/640/360" alt="Slide 2">
+    <img src="https://picsum.photos/id/1039/640/360" alt="Slide 3">
+    <button class="play-pause" id="playPauseBtn" aria-label="Pause">⏸</button>
+    <div class="carousel-controls" id="carouselDots"></div>
+  </section>
+
+  <!-- ===== Recommendation Cards ===== -->
+  <section>
+    <h2>Rekomendasi Hari Ini</h2>
+    <div class="card-container" id="recommendContainer">
+      <!-- populated by JS -->
+    </div>
+    <button class="button" onclick="alert('Menampilkan semua rekomendasi')">Lihat Semua</button>
+  </section>
+
+  <!-- ===== Content Section ===== -->
+  <section>
+    <h2>Konten</h2>
+    <img src="https://picsum.photos/id/1050/640/360" id="mainContentImg" class="main-image" alt="Konten Gambar">
+    <div class="thumbnail-container">
+      <img src="https://picsum.photos/id/1050/200/120" class="thumbnail" onclick="changeMainImg(this)" alt="Thumb 1">
+      <img src="https://picsum.photos/id/1065/200/120" class="thumbnail" onclick="changeMainImg(this)" alt="Thumb 2">
+      <img src="https://picsum.photos/id/1041/200/120" class="thumbnail" onclick="changeMainImg(this)" alt="Thumb 3">
+    </div>
+    <p id="contentText">Teks konten utama. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus et risus vitae eros rhoncus sagittis.</p>
+    <button class="button" onclick="alert('Membaca konten selengkapnya')">Baca Selengkapnya</button>
+  </section>
+
+  <!-- ===== Daftar Item Konten ===== -->
+  <section>
+    <h3>Item Lainnya</h3>
+    <div class="item-container" id="itemContainer">
+      <!-- populated by JS -->
+    </div>
+  </section>
+
+  <!-- ===== Comment Section ===== -->
+  <section id="commentSection">
+    <h2>Komentar</h2>
+    <div class="comment-list" id="commentList">
+      <div class="comment">
+        <strong>Nama Pengguna 1</strong> <time datetime="PT2H">2 jam lalu</time><br>
+        Lorem ipsum dolor sit amet.
+      </div>
+      <div class="comment">
+        <strong>Nama Pengguna 2</strong> <time datetime="PT1H">1 jam lalu</time><br>
+        Sed ut perspiciatis unde omnis.
+      </div>
+    </div>
+
+    <form class="comment-form" id="commentForm">
+      <input type="text" id="commentName" placeholder="Nama" required>
+      <textarea id="commentText" rows="3" placeholder="Tulis komentar..." required></textarea>
+      <button type="submit" class="button small">Kirim</button>
+    </form>
+  </section>
+
+  <!-- ===== Modal ===== -->
+  <div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <button class="close-btn" onclick="closeModal()" aria-label="Tutup">✕</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- ===== Bottom Navigation ===== -->
+  <nav class="bottom-nav" id="bottomNav">
+    <div class="active" onclick="setActiveNav(this,'home')" aria-label="Home">🏠<br><small>Home</small></div>
+    <div onclick="setActiveNav(this,'komentar')" aria-label="Komentar">💬<br><small>Komentar</small></div>
+    <div onclick="setActiveNav(this,'about')" aria-label="About">⚙️<br><small>About</small></div>
+  </nav>
+
+  <script>
+    /* ========== Data Mock ========= */
+    const recommendations = [
+      {id:1,title:'Card #1',img:'https://picsum.photos/id/110/400/240',desc:'Deskripsi singkat card 1'},
+      {id:2,title:'Card #2',img:'https://picsum.photos/id/111/400/240',desc:'Deskripsi singkat card 2'},
+      {id:3,title:'Card #3',img:'https://picsum.photos/id/112/400/240',desc:'Deskripsi singkat card 3'},
+      {id:4,title:'Card #4',img:'https://picsum.photos/id/113/400/240',desc:'Deskripsi singkat card 4'},
+      {id:5,title:'Card #5',img:'https://picsum.photos/id/114/400/240',desc:'Deskripsi singkat card 5'},
+      {id:6,title:'Card #6',img:'https://picsum.photos/id/115/400/240',desc:'Deskripsi singkat card 6'}
+    ];
+    const items = [
+      {id:101,title:'Item 1',img:'https://picsum.photos/id/1070/400/240',content:'Konten detail item 1...'},
+      {id:102,title:'Item 2',img:'https://picsum.photos/id/1084/400/240',content:'Konten detail item 2...'},
+      {id:103,title:'Item 3',img:'https://picsum.photos/id/109/400/240',content:'Konten detail item 3...'}
+    ];
+
+    /* ========== Populate cards and items ========== */
+    function renderCards() {
+      const wrapper=document.getElementById('recommendContainer');
+      recommendations.forEach(c=>{
+        const div=document.createElement('div');
+        div.className='card';
+        div.innerHTML=`<img src="${c.img}" alt="${c.title}"><strong>${c.title}</strong>`;
+        div.addEventListener('click',()=>openDetail(c.title,c.img,c.desc));
+        wrapper.appendChild(div);
+      });
+    }
+    function renderItems() {
+      const wrapper=document.getElementById('itemContainer');
+      items.forEach(i=>{
+        const div=document.createElement('div');
+        div.className='card';
+        div.innerHTML=`<img src="${i.img}" alt="${i.title}"><p><strong>${i.title}</strong></p><button class="button small">Lihat Detail</button>`;
+        div.querySelector('button').addEventListener('click',e=>{e.stopPropagation();openDetail(i.title,i.img,i.content);} );
+        div.addEventListener('click',()=>openDetail(i.title,i.img,i.content));
+        wrapper.appendChild(div);
+      });
+    }
+
+    /* ========== Side Menu ========== */
+    function toggleMenu() { document.getElementById('sideMenu').classList.toggle('active'); }
+    function closeMenu() { document.getElementById('sideMenu').classList.remove('active'); }
+    function toggleDropdown(el) {
+      el.parentElement.classList.toggle('open');
+      const expanded = el.getAttribute('aria-expanded')==='true';
+      el.setAttribute('aria-expanded',!expanded);
+    }
+    function navigate(target){alert('Navigasi ke '+target);closeMenu();}
+
+    /* ========== Search Overlay ========== */
+    function toggleSearch() {
+      const overlay=document.getElementById('searchOverlay');
+      const visible=overlay.style.display==='grid';
+      overlay.style.display=visible?'none':'grid';
+      if(!visible){document.getElementById('searchInput').focus();}
+    }
+    function performSearch() {
+      const q=document.getElementById('searchInput').value.trim().toLowerCase();
+      if(!q)return;
+      const results=[...document.querySelectorAll('.card')].filter(c=>c.textContent.toLowerCase().includes(q));
+      if(results.length){
+        openModal(`<h3 id="modalTitle">Hasil pencarian: "${q}"</h3>`+results.map(r=>r.outerHTML).join(''));
+      }else{
+        openModal(`<h3 id="modalTitle">Hasil pencarian</h3><p>Tidak ada yang cocok.</p>`);
+      }
+      toggleSearch();
+    }
+
+    /* ========== Carousel ========== */
+    const carousel = document.getElementById('carousel');
+    const slides = carousel.querySelectorAll('img');
+    const dotsContainer = document.getElementById('carouselDots');
+    const playPauseBtn=document.getElementById('playPauseBtn');
+    let currentSlide = 0;
+    let interval=null;
+    slides.forEach((_, idx) => {
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (idx === 0 ? ' active' : '');
+      dot.addEventListener('click', () => { changeSlide(idx); });
+      dotsContainer.appendChild(dot);
+    });
+    const dots = dotsContainer.querySelectorAll('.dot');
+    function changeSlide(idx) {
+      slides[currentSlide].classList.remove('active');
+      dots[currentSlide].classList.remove('active');
+      currentSlide = idx;
+      slides[currentSlide].classList.add('active');
+      dots[currentSlide].classList.add('active');
+    }
+    function nextSlide() { changeSlide((currentSlide + 1) % slides.length); }
+    function startCarousel(){interval=setInterval(nextSlide,4000);playPauseBtn.textContent='⏸';playPauseBtn.setAttribute('aria-label','Pause');}
+    function stopCarousel(){clearInterval(interval);interval=null;playPauseBtn.textContent='▶';playPauseBtn.setAttribute('aria-label','Play');}
+    playPauseBtn.addEventListener('click',()=>{interval?stopCarousel():startCarousel();});
+    startCarousel();
+
+    /* ========== Content thumbnails ========== */
+    function changeMainImg(imgEl){
+      const main=document.getElementById('mainContentImg');
+      main.src=imgEl.src.replace('/200/120','/640/360');
+    }
+
+    /* ========== Bottom Navigation ========== */
+    function setActiveNav(el,sectionId){
+      document.querySelectorAll('#bottomNav div').forEach(div=>div.classList.remove('active'));
+      el.classList.add('active');
+      if(sectionId==='komentar'){document.getElementById('commentSection').scrollIntoView({behavior:'smooth'});}
+      else if(sectionId==='home'){window.scrollTo({top:0,behavior:'smooth'});}
+      else if(sectionId==='about'){alert('Tentang aplikasi');}
+    }
+
+    /* ========== Comment Section ========== */
+    document.getElementById('commentForm').addEventListener('submit',function(e){
+      e.preventDefault();
+      const name=this.commentName.value.trim();
+      const text=this.commentText.value.trim();
+      if(!name||!text)return;
+      const div=document.createElement('div');
+      div.className='comment';
+      div.innerHTML=`<strong>${name}</strong> <time datetime="PT0M">Baru saja</time><br>${text}`;
+      document.getElementById('commentList').prepend(div);
+      this.reset();
+    });
+
+    /* ========== Modal ========= */
+    function openModal(html){document.getElementById('modalContent').innerHTML=html;document.getElementById('modalOverlay').style.display='flex';}
+    function closeModal(){document.getElementById('modalOverlay').style.display='none';}
+
+    /* helper for card detail */
+    function openDetail(title,img,content){
+      openModal(`<h3 id="modalTitle">${title}</h3><img src="${img}" alt="${title}" style="width:100%;border-radius:6px;margin-bottom:.5rem;"><p>${content}</p>`);
+    }
+
+    /* ===== init ===== */
+    renderCards();
+    renderItems();
+  </script>
+</body>
+</html>
